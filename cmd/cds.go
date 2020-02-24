@@ -28,7 +28,7 @@ import (
 func cds() *cobra.Command {
 	handler := &cdsHandler{}
 	localCmd := makeXDSCmd("cds", handler)
-	localCmd.Flags().StringVarP(&handler.matchName, "name", "n", "", "Show only cluster with this name")
+	localCmd.Flags().StringVarP(&handler.matchName, "resource", "r", "", "Show only cluster with this name")
 	localCmd.Flags().BoolVarP(&handler.showAll, "all", "a", false, "If set, output the whole CDS response.")
 	return localCmd
 }
