@@ -1,9 +1,9 @@
 all: xdscli
 
 xdscli:
-	@go build -o out/xdscli -v -mod=vendor xdscli.go
+	@go build -o out/linux_amd64/xdscli -v -mod=vendor xdscli.go
 
 install: xdscli
-	cp out/xdscli ${GOPATH}/bin
+	cp out/linux_amd64/xdscli ${GOPATH}/bin
 
 .PHONY: all
