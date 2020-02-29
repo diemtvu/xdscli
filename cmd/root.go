@@ -43,7 +43,7 @@ func init() {
 	RootCmd.PersistentFlags().BoolVarP(&streaming, "streaming", "s", false, "If set, waiting on streaming gRPC until terminated.")
 	RootCmd.PersistentFlags().StringVarP(&proxyTag, "proxytag", "t", "", "Pod name or app label or istio label to identify the proxy.")
 	RootCmd.PersistentFlags().StringVarP(&proxyType, "proxytype", "", "sidecar", "sidecar, ingress, router. Default 'sidecar'.")
-	RootCmd.PersistentFlags().StringVarP(&outputFile, "out", "o", "", "output file. Leave blank to go to stdout")
+	RootCmd.PersistentFlags().StringVarP(&outputFile, "file", "f", "", "output file. Leave blank to go to stdout")
 
 	RootCmd.AddCommand(lds())
 	RootCmd.AddCommand(cds())

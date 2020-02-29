@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -28,13 +29,20 @@ import (
 func cds() *cobra.Command {
 	handler := &cdsHandler{}
 	localCmd := makeXDSCmd("cds", handler)
-	localCmd.Flags().StringVarP(&handler.matchName, "resource", "r", "", "Show only cluster with this name")
-	localCmd.Flags().BoolVarP(&handler.showAll, "all", "a", false, "If set, output the whole CDS response.")
+	// localCmd.Flags().StringVarP(&handler.matchName, "resource", "r", "", "Show only cluster with this name")
+	localCmd.Flags().StringVarP(&handler.fqdn, "fqdn", "", "", "Filter clusters by substring of Service FQDN field")
+	localCmd.Flags().StringVarP(&handler.direction, "direction", "d", "", "Filter clusters by Direction field")
+	localCmd.Flags().StringVarP(&handler.subset, "subset", "", "", "Filter clusters by substring of Subset field")
+	localCmd.Flags().Uint32VarP(&handler.port, "port", "", 0, "Filter clusters by Port field")
 	return localCmd
 }
 
 type cdsHandler struct {
-	matchName string
+	// matchName string
+	fqdn      string
+	direction string
+	subset    string
+	port      uint32
 	showAll   bool
 }
 
@@ -42,26 +50,50 @@ func (c *cdsHandler) makeRequest(pod *PodInfo) *xdsapi.DiscoveryRequest {
 	return pod.makeRequest("cds")
 }
 
+func (c *cdsHandler) Match(cluster *xdsapi.Cluster) bool {
+	name := cluster.Name
+	if c.fqdn == "" && c.port == 0 && c.subset == "" && c.direction == "" {
+		return true
+	}
+	if c.fqdn != "" && !strings.Contains(name, string(c.fqdn)) {
+		return false
+	}
+	if c.direction != "" && !strings.Contains(name, string(c.direction)) {
+		return false
+	}
+	if c.subset != "" && !strings.Contains(name, c.subset) {
+		return false
+	}
+	if c.port != 0 {
+		p := fmt.Sprintf("|%v|", c.port)
+		if !strings.Contains(name, p) {
+			return false
+		}
+	}
+	return true
+}
+
 func (c *cdsHandler) onXDSResponse(resp *xdsapi.DiscoveryResponse) error {
-	if c.showAll {
+	if len(c.fqdn) == 0 || c.fqdn == "*" || c.fqdn == "all" {
 		outputJSON(resp)
 		return nil
 	}
-	seenClusters := make([]string, 0, len(resp.Resources))
+	seenClusters := make(map[string]*xdsapi.Cluster, len(resp.Resources))
 	for _, res := range resp.Resources {
 		cluster := &xdsapi.Cluster{}
 		if err := ptypes.UnmarshalAny(res, cluster); err != nil {
 			log.Errorf("Cannot unmarshal any proto to cluster: %v", err)
 			continue
 		}
-		seenClusters = append(seenClusters, cluster.Name)
+		seenClusters[cluster.Name] = cluster
 
-		if c.matchName == cluster.Name {
+		if c.Match(cluster) {
 			outputJSON(cluster)
 			return nil
 		}
 	}
-	msg := fmt.Sprintf("Cannot find any listener with name %q. Seen:\n", c.matchName)
+	msg := fmt.Sprintf("Cannot find any cluster for FQDN %q. Seen:\n", c.fqdn)
+	msg += fmt.Sprintln("SERVICE FQDN\tPORT\tSUBSET\tDIRECTION\tTYPE")
 	for _, c := range seenClusters {
 		msg += fmt.Sprintf("  %s\n", c)
 	}
