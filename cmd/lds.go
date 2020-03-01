@@ -22,7 +22,7 @@ import (
 func lds() *cobra.Command {
 	handler := &ldsHandler{}
 	localCmd := makeXDSCmd("lds", handler)
-	localCmd.Flags().StringVarP(&handler.matchName, "resource", "r", "virtualInbound", "Filter listeners by name")
+	localCmd.Flags().StringVarP(&handler.matchName, "resource", "r", "", "Filter listeners by name")
 	localCmd.Flags().StringVarP(&handler.matchAddress, "address", "a", "", "Filter listeners by address field")
 	localCmd.Flags().StringVarP(&handler.matchType, "type", "", "", "Filter listeners by type field")
 	localCmd.Flags().Uint32VarP(&handler.matchPort, "port", "p", 0, "Filter listeners by Port field")
