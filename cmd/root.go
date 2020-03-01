@@ -47,7 +47,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVarP(&proxyTag, "proxytag", "t", "", "Pod name or app label or istio label to identify the proxy.")
 	RootCmd.PersistentFlags().StringVarP(&proxyType, "proxytype", "", "sidecar", "router or sidecar. Default sidecar")
 	RootCmd.PersistentFlags().StringVarP(&outputFile, "file", "f", "", "output file. Leave blank to go to stdout")
-	RootCmd.PersistentFlags().StringVarP(&outputFormat, "out", "o", "short", "output format. Accepted values: short (default), json")
+	RootCmd.PersistentFlags().StringVarP(&outputFormat, "out", "o", "json", "output format. Accepted values: short, json (default)")
 	
 	RootCmd.AddCommand(lds())
 	RootCmd.AddCommand(cds())

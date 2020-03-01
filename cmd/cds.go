@@ -1,27 +1,17 @@
-// Copyright 2020 Istio Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/protobuf/ptypes"
+	any "github.com/golang/protobuf/ptypes/any"
+	"istio.io/istio/pilot/pkg/model"
 
 	"istio.io/pkg/log"
 )
@@ -50,10 +40,10 @@ func (c *cdsHandler) makeRequest(pod *PodInfo) *xdsapi.DiscoveryRequest {
 	return pod.makeRequest("cds")
 }
 
-func (c *cdsHandler) Match(cluster *xdsapi.Cluster) bool {
+func (c *cdsHandler) match(cluster *xdsapi.Cluster) bool {
 	name := cluster.Name
-	if c.fqdn == "" && c.port == 0 && c.subset == "" && c.direction == "" {
-		return true
+	if c.matchName != "" && c.matchName != name {
+		return false
 	}
 	if c.fqdn != "" && !strings.Contains(name, string(c.fqdn)) {
 		return false
@@ -74,28 +64,69 @@ func (c *cdsHandler) Match(cluster *xdsapi.Cluster) bool {
 }
 
 func (c *cdsHandler) onXDSResponse(resp *xdsapi.DiscoveryResponse) error {
-	if len(c.fqdn) == 0 || c.fqdn == "*" || c.fqdn == "all" {
-		outputJSON(resp)
+	if len(c.matchName) == 0 || c.matchName == "*" || c.matchName == "all" {
+		c.output(resp)
 		return nil
 	}
-	seenClusters := make(map[string]*xdsapi.Cluster, len(resp.Resources))
+	filterResp := &xdsapi.DiscoveryResponse{
+		Resources: []*any.Any{},
+	}
 	for _, res := range resp.Resources {
 		cluster := &xdsapi.Cluster{}
 		if err := ptypes.UnmarshalAny(res, cluster); err != nil {
 			log.Errorf("Cannot unmarshal any proto to cluster: %v", err)
 			continue
 		}
-		seenClusters[cluster.Name] = cluster
-
-		if c.Match(cluster) {
-			outputJSON(cluster)
-			return nil
+		
+		if c.match(cluster) {
+			filterResp.Resources = append(filterResp.Resources, res)
 		}
 	}
-	msg := fmt.Sprintf("Cannot find any cluster for FQDN %q. Seen:\n", c.fqdn)
-	msg += fmt.Sprintln("SERVICE FQDN\tPORT\tSUBSET\tDIRECTION\tTYPE")
-	for _, c := range seenClusters {
-		msg += fmt.Sprintf("  %s\n", c)
+
+	if len(filterResp.Resources) == 0{
+		return fmt.Errorf("Cannot find cluster matched conditions. Found:\n%s", c.outputShort(resp))
 	}
-	return fmt.Errorf("%s", msg)
+	c.output(filterResp)
+	return nil
+}
+
+func (c *cdsHandler) output(resp *xdsapi.DiscoveryResponse) {
+	if outputFormat == "json" {
+		outputJSON(resp)
+		return
+	}
+
+	fmt.Println(c.outputShort(resp))
+}
+
+func retrieveSocketMatch(cluster *xdsapi.Cluster) []string {
+	ret := make([]string, 0, len(cluster.TransportSocketMatches))
+	for _, m := range cluster.TransportSocketMatches {
+		ret = append(ret, m.Name)
+	}
+	return ret
+}
+
+func (c *cdsHandler) outputShort(resp *xdsapi.DiscoveryResponse) string {
+	var buf bytes.Buffer
+	w := new(tabwriter.Writer).Init(&buf, 0, 8, 5, ' ', 0)
+	fmt.Fprintln(w,  "SERVICE FQDN\tPORT\tSUBSET\tDIRECTION\tTYPE\tSOCKET_MATCH")
+	for _, res := range resp.Resources {
+		cluster := &xdsapi.Cluster{}
+		if err := ptypes.UnmarshalAny(res, cluster); err != nil {
+			log.Errorf("Cannot unmarshal any proto to cluster: %v", err)
+			continue
+		}
+		if len(strings.Split(cluster.Name, "|")) > 3 {
+			direction, subset, fqdn, port := model.ParseSubsetKey(cluster.Name)
+			if subset == "" {
+				subset = "-"
+			}
+			_, _ = fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%s\t%v\n", fqdn, port, subset, direction, cluster.GetType(), retrieveSocketMatch(cluster))
+		} else {
+			_, _ = fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%s\t%v\n", cluster.Name, "-", "-", "-", cluster.GetType(), retrieveSocketMatch(cluster))
+		}
+	}
+	w.Flush()
+	return buf.String()
 }
