@@ -1,9 +1,9 @@
-all: xdscli
+all: xds
 
-xdscli:
-	@go build -o out/linux_amd64/xdscli -v -mod=vendor xdscli.go
+xds:
+	@go build -o out/linux_amd64/xds -v -mod=vendor xdscli.go
 
-install: xdscli
-	cp out/linux_amd64/xdscli ${GOPATH}/bin
+install: xds
+	cp out/linux_amd64/xds ${GOPATH}/bin
 
 .PHONY: all

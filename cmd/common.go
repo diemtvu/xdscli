@@ -78,7 +78,7 @@ func newPodInfo(nameOrAppLabel string, kubeconfig string, proxyType string) *Pod
 		log.Errorf(err.Error())
 		return nil
 	}
-
+	
 	for _, pod := range pods.Items {
 		log.Debugf("pod %q", pod.Name)
 		if pod.Name == nameOrAppLabel {
@@ -112,7 +112,7 @@ func newPodInfo(nameOrAppLabel string, kubeconfig string, proxyType string) *Pod
 	return nil
 }
 
-func (p PodInfo) makeNodeID() string {
+func (p PodInfo) makeNodeID() string {	
 	if p.ProxyType != "" {
 		return fmt.Sprintf("%s~%s~%s.%s~%s.svc.cluster.local", p.ProxyType, p.IP, p.Name, p.Namespace, p.Namespace)
 	}

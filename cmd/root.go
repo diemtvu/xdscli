@@ -30,21 +30,25 @@ var (
 	// Pod name or app label or istio label to identify the proxy.
 	proxyTag string
 
-	// Either sidecar, ingress or router
+	// If set, is router proxy (ingress/egress), otherwise, is sidecar
 	proxyType string
 
 	// Path to output file. Leave blank to output to stdout.
 	outputFile string
+
+	// short (default) or json
+	outputFormat string
 )
 
 func init() {
 	RootCmd.PersistentFlags().StringVarP(&kubeConfig, "kubeconfig", "k", "~/.kube/config", "path to the kubeconfig file. Default is ~/.kube/config")
-	RootCmd.PersistentFlags().StringVarP(&pilotURL, "pilot", "p", "", "pilot address. Will try port forward if not provided.")
-	RootCmd.PersistentFlags().BoolVarP(&streaming, "streaming", "s", false, "If set, waiting on streaming gRPC until terminated.")
+	RootCmd.PersistentFlags().StringVarP(&pilotURL, "pilot-url", "u", "", "pilot address. Will try port forward if not provided.")
+	RootCmd.PersistentFlags().BoolVarP(&streaming, "watch", "w", false, "After listing/getting the requested object, watch for changes.")
 	RootCmd.PersistentFlags().StringVarP(&proxyTag, "proxytag", "t", "", "Pod name or app label or istio label to identify the proxy.")
-	RootCmd.PersistentFlags().StringVarP(&proxyType, "proxytype", "", "sidecar", "sidecar, ingress, router. Default 'sidecar'.")
+	RootCmd.PersistentFlags().StringVarP(&proxyType, "proxytype", "", "sidecar", "router or sidecar. Default sidecar")
 	RootCmd.PersistentFlags().StringVarP(&outputFile, "file", "f", "", "output file. Leave blank to go to stdout")
-
+	RootCmd.PersistentFlags().StringVarP(&outputFormat, "out", "o", "short", "output format. Accepted values: short (default), json")
+	
 	RootCmd.AddCommand(lds())
 	RootCmd.AddCommand(cds())
 	RootCmd.AddCommand(eds())

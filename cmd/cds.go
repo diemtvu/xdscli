@@ -29,16 +29,16 @@ import (
 func cds() *cobra.Command {
 	handler := &cdsHandler{}
 	localCmd := makeXDSCmd("cds", handler)
-	// localCmd.Flags().StringVarP(&handler.matchName, "resource", "r", "", "Show only cluster with this name")
+	localCmd.Flags().StringVarP(&handler.matchName, "resource", "r", "", "Show only cluster with this name")
 	localCmd.Flags().StringVarP(&handler.fqdn, "fqdn", "", "", "Filter clusters by substring of Service FQDN field")
 	localCmd.Flags().StringVarP(&handler.direction, "direction", "d", "", "Filter clusters by Direction field")
 	localCmd.Flags().StringVarP(&handler.subset, "subset", "", "", "Filter clusters by substring of Subset field")
-	localCmd.Flags().Uint32VarP(&handler.port, "port", "", 0, "Filter clusters by Port field")
+	localCmd.Flags().Uint32VarP(&handler.port, "port", "p", 0, "Filter clusters by Port field")
 	return localCmd
 }
 
 type cdsHandler struct {
-	// matchName string
+	matchName string
 	fqdn      string
 	direction string
 	subset    string
