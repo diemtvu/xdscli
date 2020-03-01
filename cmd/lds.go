@@ -28,6 +28,7 @@ func lds() *cobra.Command {
 	localCmd.Flags().Uint32VarP(&handler.matchPort, "port", "p", 0, "Filter listeners by Port field")
 	localCmd.Flags().StringVarP(&handler.matchChainAddress, "chain-address", "", "", "Filter listeners filter-chain by address field")
 	localCmd.Flags().Uint32VarP(&handler.matchChainPort, "chain-port", "", 0, "Filter listeners by destination port field")
+	localCmd.Flags().BoolVarP(&handler.showAll, "all", "", false, "Show all")
 	return localCmd
 }
 
@@ -110,7 +111,7 @@ func (c *ldsHandler) filter(l *xdsapi.Listener) *xdsapi.Listener {
 }
 
 func (c *ldsHandler) matchFilter(l *xdsapi.Listener) bool {
-	if c.matchName != l.Name {
+	if len(c.matchName) != 0 && c.matchName != l.Name {
 		return false
 	}
 	if len(c.matchAddress) != 0 && c.matchAddress != retrieveListenerAddress(l) {
@@ -142,7 +143,7 @@ func (c *ldsHandler) matchFilterChain(chain *listener.FilterChain) bool {
 }
 
 func (c *ldsHandler) onXDSResponse(resp *xdsapi.DiscoveryResponse) error {
-	if len(c.matchName) == 0 || c.matchName == "*" || c.matchName == "all" {
+	if c.showAll {
 		c.output(resp)
 		return nil
 	}

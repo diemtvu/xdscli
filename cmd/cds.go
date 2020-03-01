@@ -24,6 +24,7 @@ func cds() *cobra.Command {
 	localCmd.Flags().StringVarP(&handler.direction, "direction", "d", "", "Filter clusters by Direction field")
 	localCmd.Flags().StringVarP(&handler.subset, "subset", "", "", "Filter clusters by substring of Subset field")
 	localCmd.Flags().Uint32VarP(&handler.port, "port", "p", 0, "Filter clusters by Port field")
+	localCmd.Flags().BoolVarP(&handler.showAll, "all", "", false, "Show all")
 	return localCmd
 }
 
@@ -64,7 +65,7 @@ func (c *cdsHandler) match(cluster *xdsapi.Cluster) bool {
 }
 
 func (c *cdsHandler) onXDSResponse(resp *xdsapi.DiscoveryResponse) error {
-	if len(c.matchName) == 0 || c.matchName == "*" || c.matchName == "all" {
+	if c.showAll {
 		c.output(resp)
 		return nil
 	}
@@ -86,6 +87,7 @@ func (c *cdsHandler) onXDSResponse(resp *xdsapi.DiscoveryResponse) error {
 	if len(filterResp.Resources) == 0{
 		return fmt.Errorf("Cannot find cluster matched conditions. Found:\n%s", c.outputShort(resp))
 	}
+
 	c.output(filterResp)
 	return nil
 }
