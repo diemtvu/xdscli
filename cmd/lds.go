@@ -123,6 +123,13 @@ func (c *ldsHandler) matchFilter(l *xdsapi.Listener) bool {
 	return true
 }
 
+func retrieveFilterChainPort(chain *listener.FilterChain) uint32 {
+	if chain.FilterChainMatch == nil || chain.FilterChainMatch.DestinationPort == nil {
+		return 0
+	}
+	return chain.FilterChainMatch.DestinationPort.Value
+}
+
 func (c *ldsHandler) matchFilterChain(chain *listener.FilterChain) bool {
 	if len(c.matchChainAddress) != 0 {
 		matched := false
@@ -136,7 +143,7 @@ func (c *ldsHandler) matchFilterChain(chain *listener.FilterChain) bool {
 			return false
 		}
 	}
-	if c.matchChainPort != 0 && c.matchChainPort != chain.FilterChainMatch.DestinationPort.Value {
+	if c.matchChainPort != 0 && c.matchChainPort != retrieveFilterChainPort(chain) {
 		return false
 	}
 	return true
